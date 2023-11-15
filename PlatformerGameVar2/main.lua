@@ -4,22 +4,22 @@ function love.load()
     
     world:addCollisionClass('Platform') -- creates a collision class for platforms
     world:addCollisionClass('Player'--[[, {ignores = {'Platform'}}]]) -- creates a collision class for player
-    world:addCollisionClass('Danger')
+    world:addCollisionClass('Danger') -- creates a Danger Collision class
     
 
     player = world:newRectangleCollider(360,100, 80, 80, {collision_class = "Player"}) -- creates square for player.
-    player:setFixedRotation(true)
+    player:setFixedRotation(true) -- prevents the player object from rotating.
     player.speed = 240 --sets the player speed.
     platform = world:newRectangleCollider(250, 400, 300, 100, {collision_class = "Platform"}) -- creates platform.
     platform:setType('static') -- sets platform to 'static' so it's not impacted by gravity.
 
-    dangerZone = world:newRectangleCollider(0, 550, 800, 50, {collision_class = "Danger"})
+    dangerZone = world:newRectangleCollider(0, 550, 800, 50, {collision_class = "Danger"}) -- creates the danger collion object
     dangerZone:setType('static') -- sets platform to 'static' so it's not impacted by gravity.
 end
 
 function love.update(dt)
     world:update(dt) -- updates the world to run at dt
-    if player.body then
+    if player.body then -- this if statement checks to see if the player object is still in play.
         local px, py = player:getPosition() -- creates local variable that grabs player position.
         --[[
             Player Movement Logic
