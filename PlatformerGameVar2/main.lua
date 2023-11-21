@@ -1,5 +1,7 @@
 function love.load()
+    love.window.setMode(1000, 768)
     anim8 = require 'libraries/anim8/anim8' -- requires anim8 library which is used for animations.
+    sti = require 'libraries/Simple-Tiled-Implementation/sti' -- requires the titled implementation library
 
     sprites = {} -- creates a sprites table
     sprites.playerSheet = love.graphics.newImage('sprites/playerSheet.png') -- creates the playersheet
@@ -21,86 +23,35 @@ function love.load()
     animations.jump = anim8.newAnimation(grid('1-7',2), 0.05) -- specifies column 1-7, row 2 for idle animation. cycles at 0.05
     animations.run = anim8.newAnimation(grid('1-5',3), 0.05) -- specifies column 1-15, row 3 for idle animation. cycles at 0.05
 
-    wf = require 'libraries/windfield/windfield'
+    wf = require 'libraries/windfield/windfield' -- requires windfall library (physics)
     world = wf.newWorld(0, 800, false) --creates 'world' for physics objects to exist in. Parameters is x,y value of gravity.
     world:setQueryDebugDrawing(true) -- draws debug colliders
     
     world:addCollisionClass('Platform') -- creates a collision class for platforms
     world:addCollisionClass('Player'--[[, {ignores = {'Platform'}}]]) -- creates a collision class for player
     world:addCollisionClass('Danger') -- creates a Danger Collision class
+
+    require('player') -- requires the player.lua file containing player-based information
     
-
-    player = world:newRectangleCollider(360,100, 40, 100, {collision_class = "Player"}) -- creates square for player.
-    player:setFixedRotation(true) -- prevents the player object from rotating.
-    player.speed = 240 --sets the player speed.
-    player.animation = animations.idle -- creates an animation property we can change
-    player.isMoving = false --used for animations. when true player is running, false is idle
-    player.direction = 1 -- used for direction. flips the player in the draw.update function
-    player.grounded = true -- detects if player is on the ground
-    player.maxJumpCount = 1 -- used for double jumping
-    player.jumpCount = 1 -- used for double jumping.
-    platform = world:newRectangleCollider(250, 400, 300, 100, {collision_class = "Platform"}) -- creates platform.
-    platform:setType('static') -- sets platform to 'static' so it's not impacted by gravity.
-
     dangerZone = world:newRectangleCollider(0, 550, 800, 50, {collision_class = "Danger"}) -- creates the danger collion object
     dangerZone:setType('static') -- sets platform to 'static' so it's not impacted by gravity.
+
+    platforms = {} -- creates a table for platform data
+
+    loadMap() --loads map
 end
 
 function love.update(dt)
     world:update(dt) -- updates the world to run at dt
-    if player.body then -- this if statement checks to see if the player object is still in play.
-        
-        --[[
-            This is a collider that checks if player is on the ground.
-        ]]
-        local colliders = world:queryRectangleArea(player:getX() - 20, player:getY() + 50, 40, 2, {'Platform'})
-        if #colliders > 0 then
-            player.grounded = true
-        else
-            player.grounded = false
-        end
-        
-        player.isMoving = false -- sets the player.isMoving to false by default (if no buttons are being pressed).
-        local px, py = player:getPosition() -- creates local variable that grabs player position.
-        --[[
-            Player Movement Logic
-            -left and right move player on X axis
-            -player speed is set as global var
-        ]]
-        if love.keyboard.isDown('right') then
-            player:setX(px + player.speed*dt)
-            player.isMoving = true
-            player.direction = 1
-        end
-        if love.keyboard.isDown('left') then
-            player:setX(px - player.speed*dt)
-            player.isMoving = true
-            player.direction = -1
-        end
-        if player:enter('Danger') then
-            player:destroy()
-        end
-    end
-    
-    --[[
-        Cycles through run, idle or jump depending on user actions.
-    ]]
-    if player.grounded then
-        if player.isMoving then
-            player.animation = animations.run
-        else
-            player.animation= animations.idle
-        end
-    else
-        player.animation = animations.jump
-    end
-    player.animation:update(dt) -- cycles animation with dt
+    gameMap:update(dt) -- updates map with dt
+    playerUpdate(dt) -- runs the player update in player.lua file
 end
 
 function love.draw()
+    gameMap:drawLayer(gameMap.layers["Tile Layer 1"])
     world:draw() -- draws world on screen.
-    local px, py = player:getPosition() -- creates a local variable for the player position
-    player.animation:draw(sprites.playerSheet, px, py, nil, 0.25 * player.direction, 0.25, 130, 300) -- draws playersheet to screen.
+    drawPlayer() -- runs the drawplayer function in the player.lua file
+   
 end
 
 --[[
@@ -154,5 +105,27 @@ function love.mousepressed(x,y, button)
         for i,c in ipairs(colliders) do
             c:destroy()
         end
+    end
+end
+
+
+--[[
+    This function spawns the platform with the data provided by Tiled and inserts into platforms table
+]]
+function spawnPlatform(x, y, width, height)
+    if width > 0 and height > 0 then
+        local platform = world:newRectangleCollider(x, y, width, height, {collision_class = "Platform"}) -- creates platform.
+        platform:setType('static') -- sets platform to 'static' so it's not impacted by gravity.
+        table.insert(platforms, platform)
+    end
+end
+
+--[[
+    this function loads the mapa and loops through all platforms to spawn the platform data
+]]
+function loadMap(mapName)
+    gameMap = sti("maps/level1.lua")
+    for i, obj in pairs(gameMap.layers["Platforms"].objects) do
+        spawnPlatform(obj.x, obj.y, obj.width, obj.height)
     end
 end
