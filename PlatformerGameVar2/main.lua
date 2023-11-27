@@ -2,9 +2,14 @@ function love.load()
     love.window.setMode(1000, 768)
     anim8 = require 'libraries/anim8/anim8' -- requires anim8 library which is used for animations.
     sti = require 'libraries/Simple-Tiled-Implementation/sti' -- requires the titled implementation library
+    cameraFile = require 'libraries/hump/camera' -- requires the camera library
+
+    cam = cameraFile() -- creates a camera object
 
     sprites = {} -- creates a sprites table
     sprites.playerSheet = love.graphics.newImage('sprites/playerSheet.png') -- creates the playersheet
+    sprites.enemySheet = love.graphics.newImage('sprites/enemySheet.png') -- creates the enemysheet
+    
 
     --[[
         this creates a grid from the PNG file
@@ -17,11 +22,13 @@ function love.load()
         use the sprites.playerSheet:getWidth() and ..:getHeight() to calculate the width/height rather then used fixed number. 
     ]]
     local grid = anim8.newGrid(614, 564, sprites.playerSheet:getWidth(), sprites.playerSheet:getHeight())
+    local enemyGrid = anim8.newGrid(100, 79, sprites.enemySheet:getWidth(), sprites.enemySheet:getHeight())
 
     animations = {} -- creates animation table
     animations.idle = anim8.newAnimation(grid('1-15',1), 0.05) -- specifies column 1-15, row 1 for idle animation. cycles at 0.05
     animations.jump = anim8.newAnimation(grid('1-7',2), 0.05) -- specifies column 1-7, row 2 for idle animation. cycles at 0.05
-    animations.run = anim8.newAnimation(grid('1-5',3), 0.05) -- specifies column 1-15, row 3 for idle animation. cycles at 0.05
+    animations.run = anim8.newAnimation(grid('1-15',3), 0.05) -- specifies column 1-15, row 3 for idle animation. cycles at 0.05
+    animations.enemy = anim8.newAnimation(enemyGrid('1-2',1), 0.03) -- specifies column 1-15, row 3 for idle animation. cycles at 0.05
 
     wf = require 'libraries/windfield/windfield' -- requires windfall library (physics)
     world = wf.newWorld(0, 800, false) --creates 'world' for physics objects to exist in. Parameters is x,y value of gravity.
@@ -32,6 +39,7 @@ function love.load()
     world:addCollisionClass('Danger') -- creates a Danger Collision class
 
     require('player') -- requires the player.lua file containing player-based information
+    require('enemy')
     
     dangerZone = world:newRectangleCollider(0, 550, 800, 50, {collision_class = "Danger"}) -- creates the danger collion object
     dangerZone:setType('static') -- sets platform to 'static' so it's not impacted by gravity.
@@ -39,19 +47,26 @@ function love.load()
     platforms = {} -- creates a table for platform data
 
     loadMap() --loads map
+    spawnEnemy(900, 320)
 end
 
 function love.update(dt)
     world:update(dt) -- updates the world to run at dt
     gameMap:update(dt) -- updates map with dt
     playerUpdate(dt) -- runs the player update in player.lua file
+    updateEnemies(dt)
+
+    local px, py = player:getPosition() -- creates a local variable for the player position
+    cam:lookAt(px, love.graphics.getHeight()/2) -- focuses camera on player
 end
 
 function love.draw()
-    gameMap:drawLayer(gameMap.layers["Tile Layer 1"])
-    world:draw() -- draws world on screen.
-    drawPlayer() -- runs the drawplayer function in the player.lua file
-   
+    cam:attach() -- attaches camera around these drawn objects. If adding something fixed like a HUD, draw OUTSIDE of cam:attach()
+        gameMap:drawLayer(gameMap.layers["Tile Layer 1"])
+        world:draw() -- draws world on screen.
+        drawPlayer() -- runs the drawplayer function in the player.lua file
+        drawEnemies()
+    cam:detach()
 end
 
 --[[

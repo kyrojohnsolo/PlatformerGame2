@@ -50,7 +50,7 @@ player = world:newRectangleCollider(360,100, 40, 100, {collision_class = "Player
             if player.isMoving then
                 player.animation = animations.run
             else
-                player.animation= animations.idle
+                player.animation = animations.idle
             end
         else
             player.animation = animations.jump
