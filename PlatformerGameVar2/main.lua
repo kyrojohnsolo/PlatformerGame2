@@ -47,7 +47,6 @@ function love.load()
     platforms = {} -- creates a table for platform data
 
     loadMap() --loads map
-    spawnEnemy(900, 320)
 end
 
 function love.update(dt)
@@ -142,5 +141,8 @@ function loadMap(mapName)
     gameMap = sti("maps/level1.lua")
     for i, obj in pairs(gameMap.layers["Platforms"].objects) do
         spawnPlatform(obj.x, obj.y, obj.width, obj.height)
+    end
+    for i, obj in pairs(gameMap.layers["Enemies"].objects) do
+        spawnEnemy(obj.x, obj.y)
     end
 end
